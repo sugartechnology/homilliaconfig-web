@@ -3,9 +3,15 @@ import { Button, Form, Input, Progress, Table, Divider, Modal, Dropdown } from '
 import axios from "axios";
 
 const configurationsDataGlobal = [];
-
+var viewForSave = false
 
 const Configurator = props => {
+
+
+    //view id
+    const [viewId, setViewId] = useState("");
+
+
 
 
     //customer variables
@@ -35,6 +41,7 @@ const Configurator = props => {
         document.addEventListener("closeMode", closeModal);
 
         const enterVRButton = document.getElementById('entervr');
+        const enterFullScreen = document.getElementById('enterFullScreen');
         document.addEventListener('onVRSupportedCheck', function (event) {
             enterVRButton.disabled = !event.detail.supported;
         }, false);
@@ -44,9 +51,11 @@ const Configurator = props => {
             window.unityInstance.Module.WebXR.toggleVR();
         }, false);
 
+        enterFullScreen.addEventListener('click', function (event) {
+            window.unityInstance.SetFullscreen(1);
+        }, false);
+
         init();
-
-
 
     }, []);
 
@@ -107,6 +116,16 @@ const Configurator = props => {
         var configuratorData = JSON.parse(dataString);
         console.log(configuratorData);
 
+        if (viewForSave) {
+            addConfiguratorAsView(configuratorData);
+        }
+        else {
+            addConfiguratorToGlobal(configuratorData);
+        }
+    }
+
+
+    const addConfiguratorToGlobal = (configuratorData) => {
         var cofiguratorOrderItem = {
             quantity: 1,
             currency: selectedCurrency,
@@ -122,8 +141,15 @@ const Configurator = props => {
         cofiguratorOrderItem.configurator = configuratorData;
         cofiguratorOrderItem.price = configuratorData.price;
 
+
         setConfigurationsData([...configurationsDataGlobal]);
     }
+
+
+    const addConfiguratorAsView = (configuratorData) => {
+        viewForSave = false;
+    }
+
 
 
     const onUpdatePriceConfigurator = (price) => {
@@ -251,6 +277,49 @@ const Configurator = props => {
     }
 
 
+    const handleAddNewConfiguration = () => {
+
+        openModal("New Configuration Will be Saved ", "onAddNewConfiguration", "Save Configuration?");
+        document.addEventListener("onAddNewConfiguration", onAddNewConfiguration.bind(this));
+
+
+    }
+
+
+
+    const handleLoadConfiguration = () => {
+        openModal(" Configuration Will be load, You are going to loose your work", "onLoadConfiguration", "Load Configuration?");
+        document.addEventListener("onLoadConfiguration", onLoadConfiguration);
+
+        var rensposeGetConfiguration = requestNetwork("homillia/configuration/get/", viewId);
+        if (!rensposeGetConfiguration.data || rensposeGetConfiguration.data != '')
+            return;
+
+        const configurationDb = rensposeGetConfiguration.data;
+    }
+
+    const onAddNewConfiguration = () => {
+        document.removeEventListener("onAddNewConfiguration", onAddNewConfiguration);
+        const confifurationView = {};
+        viewForSave = true;
+        window.unityInstance.SendMessage("CabinManager", "SendNewConfiguration");
+        /*var rensposeGetConfiguration = requestNetwork("homillia/configuration/save/", '', confifurationView);
+        if (!rensposeGetConfiguration.data || rensposeGetConfiguration.data != '')
+            return;*/
+    }
+
+
+    const onLoadConfiguration = () => {
+        document.removeEventListener("onLoadConfiguration", onLoadConfiguration);
+        const confifurationView = {};
+        /*var rensposeGetConfiguration = requestNetwork("homillia/configuration/save/", '', confifurationView);
+        if (!rensposeGetConfiguration.data || rensposeGetConfiguration.data != '')
+            return;*/
+    }
+
+
+
+
     //load and update configuration
     const [configUpdateIndex, setConfigUpdateIndex] = useState(-1);
     const handleUpdateConfiguration = (i) => {
@@ -360,7 +429,8 @@ const Configurator = props => {
             <div style={{ width: "900px", height: "700px", position: "relative", margin: "auto" }}>
                 <div>
                     <canvas id="unity-canvas" style={{ width: "100%", height: "100%" }} />
-                    <button id="entervr" value="Enter VR" disabled style={{ float: "right" }}>VR</button>
+                    <button id="entervr" value="Enter VR" style={{ float: "right" }}>VR</button>
+                    <button id="enterFullScreen" value="Full Screen" style={{ float: "right" }}>Full Screen</button>
                 </div>
 
 
@@ -390,6 +460,21 @@ const Configurator = props => {
                     id='form-input-configurator-add'
                     floated='right'
                     onClick={e => { handleAddConfiguration(); }}> Add</Button>
+
+
+
+                <Input id='id-view'
+                    floated='right'>
+                </Input>
+                <Button
+                    id='form-input-configurator-add'
+                    floated='right'
+                    onClick={e => { handleAddNewConfiguration(); }}> Add View</Button>
+
+                <Button
+                    id='form-input-configurator-add'
+                    floated='right'
+                    onClick={e => { handleLoadConfiguration(); }}> Get View</Button>
                 <br></br>
                 <br></br>
                 <br></br>
